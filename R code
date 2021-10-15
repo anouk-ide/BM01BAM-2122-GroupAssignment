@@ -1,7 +1,6 @@
 # ------------------------------------------------------------------------------
 # LIBRARIES AND PATHS
 # ------------------------------------------------------------------------------
-library(dplyr)
 library(readxl)
 library(stargazer)
 library(tidyr)
@@ -9,6 +8,7 @@ library(corrplot)
 library(ggplot2)
 library(reshape2)
 library(plyr)
+library(dplyr)
 library(tidyverse)
 library(gridExtra)
 library(lmtest)
@@ -213,18 +213,20 @@ dfStringency[is.na(dfStringency)] <- 0
 # Create sub-index dataset as a helper to aggregate indices
 # Get max value for each index of stringency dataset
 dfStringency.Sub <- data.frame(
-  t(dfStringency[-1]) %>% apply(MARGIN = 1, FUN = max)) %>% rownames_to_column()
+  cbind(
+    # Indices
+    c("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "E1", "E2"),
+    # Max possible value (source: codebook)
+    c(3, 3, 2, 4, 2, 3, 2, 4, 2, 2),
+    # Has flag
+    c(1, 1, 1, 1, 1, 1, 1, 0, 1, 0)
+  )
+)
 # Change column names
-colnames(dfStringency.Sub) <- c("Indicator","N")
-# Create column that checks if index has a flag in its name
-dfStringency.Sub$F <- ifelse(
-  sub(".*_", "", dfStringency.Sub$Indicator) == "Flag", 1, 0)
-# Change Indicator column to only its index value
-dfStringency.Sub$Indicator <- substr(dfStringency.Sub$Indicator, 1, 2)
-# Summarise indices
-dfStringency.Sub <- ddply(dfStringency.Sub, c("Indicator"), summarise,
-                          N = max(N),
-                          F = max(F))
+colnames(dfStringency.Sub) <- c("Indicator","N", "F")
+# Change types
+dfStringency.Sub$N <- as.integer(dfStringency.Sub$N)
+dfStringency.Sub$F <- as.integer(dfStringency.Sub$F)
 
 # Create sub index scores
 # 1. Create variable to help with correct column selection (no _Flag columns)
@@ -600,7 +602,8 @@ VIF <- merge(
   vif05[1:2],
   by = "rowname", all = TRUE)
 colnames(VIF) <- c("Variable", "VIF 01", "VIF 02", "VIF 03", "VIF 04", "VIF 05")
-stargazer(VIF, summary = FALSE)
+rownames(VIF) <- VIF[,1]
+stargazer(VIF[,-1], summary = FALSE)
 # ------------------------------------------------------------------------------
 # REGRESSION ANALYSIS (v.7)
 # ------------------------------------------------------------------------------
